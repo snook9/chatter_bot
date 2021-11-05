@@ -1,19 +1,23 @@
-//***********************Jonathan CASSAING****************************
-//***********************16/01/2009***********************************
-//***********************ChatterBot_v0.2b******************************
+//***********************Jonathan CASSAING************************************************************************************************
+//***********************v1.0 -> 20/01/2009***********************************************************************************************
+//****************************************************************************************************************************************
+
+//***********************ChatterBot_v1.0**************************************************************************************************
+//****************************************************************************************************************************************
+//****************************************************************************************************************************************
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
-#define MNAME 256
-#define MLIGNE 256
-#define NAMEFIC "./Eliza_File.txt"
-#define CLEAN "clear" //ecrire "cls" a la place de "clear" pour une utilisation sous windows
-#define CHATTERBOT	"__________ChatterBot_v0.2b__________"
+#define MNAME 256							//Caracteres maximum pour les Key Words
+#define MLIGNE 256							//Caracteres maximum pour les phrases
+#define NAMEFIC "./Eliza_File.txt"					//Fichier du ChatterBot
+#define CLEAN "clear" 							//Ecrire "cls" a la place de "clear" pour une utilisation sous windows
+#define CHATTERBOT	"__________ChatterBot_v1.0__________"		//Version du ChatterBot
 
-int Cpt=1; //Variable globale de numerotation des structures (Num)
+int Cpt=1; 								//Variable globale de numerotation des structures (Num)
 
 typedef struct eliza{
 	char cle1[MNAME];
@@ -24,29 +28,35 @@ typedef struct eliza{
 	int num;
 }TELIZA;
 
-TELIZA tsaisie_mcle(void);
-void fenr_mcle(TELIZA *E, FILE * fq);
-int fcreer_chatterbot(char *nomfic);
-void faff_mcle(FILE *faff, TELIZA *E);
-int faff_chatterbot(char *nomfic);
-int frech_mcle(TELIZA *Eret, FILE * fq, int num1);
-void fmodif_mcle(TELIZA *Qamodif);
-int fmodif_chatterbot(char *nomfic);
+/*********************Fonctions administrateur*********************/
+TELIZA tsaisie_mcle(void);						//Permet la saisie d'une structure TELIZA
+void fenr_mcle(TELIZA *E, FILE * fq);					//Enregistre une structure a la fin du fichier "fq"
+int fcreer_chatterbot(char *nomfic);					//Ajoute une structure au fichier "nomfic"
+void faff_mcle(FILE *faff, TELIZA *E);					//Enregistre une structure au debut du fichier "fq", //Non utilisee
+int faff_chatterbot(char *nomfic);					//Affichage du fichier "nomfic"
+int frech_mcle(TELIZA *Eret, FILE * fq, int num1);			//Recherche une structure grace a son numero
+void fmodif_mcle(TELIZA *Qamodif);					//Modifie une strucutre existante
+int fmodif_chatterbot(char *nomfic);					//Recherche une structure, la modifie et l'enregistre dans le fichier "nomfic"
+/*********************Fonctions main*********************/
+char menu_admin(void);							//Affiche le menu administrateur
+char menu_util(void);							//Affiche le menu utilisateur
+int gestion_admin(void);						//Gere le menu administrateur
+int gestion_util(void);							//Gere le menu utilisateur
+/*********************Fonctions utilisateur*********************/
+int str_inclus(char *mot, char *phrase);				//Recherche le mot "mot" dans la phrase "phrase"
+int trouve_reponse(char *phUTIL, TELIZA *E);				//Recherche si "phUTIL" contient un des Key Words de "E"
+int fdialogue(FILE *fq, char *phUTIL, char *rep);			//Recherche si "phUTIL" contient un des Key Words d'une structure du fichier "fq"
+int fchatterbot(char *UTIL, char *ficnameCHAT);				//Genere une session ChatterBot
+int ftrace(char *UTIL);							//Affiche la derniere session
 
-char menu_admin(void);
-void gestion_admin();
 
-int str_inclus(char *mot, char *phrase);
-int trouve_reponse(char *phUTIL, TELIZA *E);
-int fdialogue(FILE *fq, char *phUTIL, char *rep);
-
+//****************************************************************************************************************************************
+//********************Fonction int main (void)********************************************************************************************
+//****************************************************************************************************************************************
 int main(void)
 {		
 	char Etat;
 	char Poubelle;
-	char Reponse[MLIGNE]="";
-	char Question[MLIGNE]="";
-	FILE *fq;
 	
 	do
 	{
@@ -62,35 +72,11 @@ int main(void)
 		switch(Etat)
 		{
 			case 'a':
-			menu_admin();
-			printf("\nTAPEZ ENTRER");
-			getc(stdin);
+			gestion_admin();
 			break;
 
 			case 'b':
-			fq=fopen(NAMEFIC,"r");
-			if(fq==NULL)
-			{
-				printf("\nErreur d'ouverture (Main)");
-				return 0;
-			}
-			printf("\nPosez une question : ");
-			fgets(Question,MLIGNE,stdin);
-			if( fdialogue(fq, Question, Reponse)==-1 )
-			{
-				printf("\nIl faut m'en dire plus\n");
-			}
-			else
-			{
-				printf("\n%s",Reponse);
-			}
-			printf("\nTapez ENTRER");
-			getc(stdin);
-			if (fq!=NULL)
-			{
-				fclose(fq);
-				fq=NULL;
-			}
+			gestion_util();
 			break;
 
 			case 'c':
@@ -104,6 +90,9 @@ int main(void)
 	}while(1);
 }
 
+//****************************************************************************************************************************************
+//********************Fonction TELIZA tsaisie_mcle(void)**********************************************************************************
+//****************************************************************************************************************************************
 TELIZA tsaisie_mcle(void)
 {
 	TELIZA Eliza;
@@ -134,12 +123,18 @@ TELIZA tsaisie_mcle(void)
 	return *pEliza;
 }
 
+//****************************************************************************************************************************************
+//********************Fonction void fenr_mcle(TELIZA *E, FILE * fq)***********************************************************************
+//****************************************************************************************************************************************
 void fenr_mcle(TELIZA *E, FILE * fq)
 {
 	fseek(fq, 0, SEEK_END);	
 	fwrite(E,sizeof(TELIZA),1,fq);
 }
 
+//****************************************************************************************************************************************
+//********************Fonction int fcreer_chatterbot(char *nomfic)************************************************************************
+//****************************************************************************************************************************************
 int fcreer_chatterbot(char *nomfic)
 {
 	TELIZA Eliza1;
@@ -175,6 +170,9 @@ int fcreer_chatterbot(char *nomfic)
 	return 1;
 }
 
+//****************************************************************************************************************************************
+//********************Fonction void faff_mcle(FILE *faff, TELIZA *E)**********************************************************************
+//****************************************************************************************************************************************
 void faff_mcle(FILE *faff, TELIZA *E)
 {
 	fseek(faff, 0, SEEK_SET);	//peut etre à enlever	
@@ -187,6 +185,9 @@ void faff_mcle(FILE *faff, TELIZA *E)
 	
 }
 
+//****************************************************************************************************************************************
+//********************Fonction int faff_chatterbot(char *nomfic)**************************************************************************
+//****************************************************************************************************************************************
 int faff_chatterbot(char *nomfic)
 {
 	FILE *fq=NULL;
@@ -232,6 +233,9 @@ int faff_chatterbot(char *nomfic)
 	
 }
 
+//****************************************************************************************************************************************
+//********************Fonction int frech_mcle(TELIZA *Eret, FILE * fq, int num1)**********************************************************
+//****************************************************************************************************************************************
 int frech_mcle(TELIZA *Eret, FILE * fq, int num1)
 {
 	memset(Eret,0,sizeof(TELIZA));
@@ -251,6 +255,9 @@ int frech_mcle(TELIZA *Eret, FILE * fq, int num1)
 	return -1;
 }
 
+//****************************************************************************************************************************************
+//********************Fonction void fmodif_mcle(TELIZA *Qamodif)**************************************************************************
+//****************************************************************************************************************************************
 void fmodif_mcle(TELIZA *Qamodif)
 {
 	int Test=-1;
@@ -259,7 +266,7 @@ void fmodif_mcle(TELIZA *Qamodif)
 		
 	do
 	{
-	printf("\nVoulez vous modifier les mots clef de la structure ?");
+	printf("\nVoulez vous modifier la structure ?");
 	printf("\n(0) NON");
 	printf("\n(1) OUI\n");	
 	scanf("%d",&Test);
@@ -292,6 +299,9 @@ void fmodif_mcle(TELIZA *Qamodif)
 	}
 }
 
+//****************************************************************************************************************************************
+//********************Fonction int fmodif_chatterbot(char *nomfic)************************************************************************
+//****************************************************************************************************************************************
 int fmodif_chatterbot(char *nomfic)
 {
 	int Num;
@@ -335,6 +345,9 @@ int fmodif_chatterbot(char *nomfic)
 	return 0;
 }
 
+//****************************************************************************************************************************************
+//********************Fonction char menu_admin(void)**************************************************************************************
+//****************************************************************************************************************************************
 char menu_admin(void)
 {
 	char Etat;
@@ -352,12 +365,27 @@ char menu_admin(void)
 		scanf("%c",&Etat);
 		scanf("%c",&Poubelle);
 
+	}while( Etat!='a' && Etat!='b' && Etat!='c' && Etat!='d');
+
+	return Etat;
+}
+
+//****************************************************************************************************************************************
+//********************Fonction int gestion_admin(void)************************************************************************************
+//****************************************************************************************************************************************
+int gestion_admin(void)
+{
+	char Etat;
+
+	do
+	{
+		Etat=menu_admin();
 		switch(Etat)
 		{
 			case 'a':
 				faff_chatterbot(NAMEFIC);
 				printf("\nTAPEZ ENTRER");
-				getc(stdin);	
+				getc(stdin);
 			break;
 
 			case 'b':
@@ -365,22 +393,25 @@ char menu_admin(void)
 			break;
 
 			case 'c':
-	
+				fmodif_chatterbot(NAMEFIC);
+				printf("\nTAPEZ ENTRER");
+				getc(stdin);
 			break;
 	
 			case 'd':
-				return Etat;	
+				return 0;	
 			break;
 
 			default :
 
 			break;
 		}
-
 	}while(1);
-
 }
 
+//****************************************************************************************************************************************
+//********************Fonction int str_inclus(char *mot, char *phrase)********************************************************************
+//****************************************************************************************************************************************
 int str_inclus(char *mot, char *phrase)
 {
 	int i=0;
@@ -425,7 +456,10 @@ int str_inclus(char *mot, char *phrase)
 	return 0;
 }
 
-int trouve_reponse(char *phUTIL, TELIZA *E)	//La fonction retourne le nombre de mot cle trouve
+//****************************************************************************************************************************************
+//********************Fonction int trouve_reponse(char *phUTIL, TELIZA *E)****************************************************************
+//****************************************************************************************************************************************
+int trouve_reponse(char *phUTIL, TELIZA *E)
 {
 	int Cpt=0;
 
@@ -448,6 +482,9 @@ int trouve_reponse(char *phUTIL, TELIZA *E)	//La fonction retourne le nombre de 
 	return Cpt;
 }
 
+//****************************************************************************************************************************************
+//********************Fonction int fdialogue(FILE *fq, char *phUTIL, char *rep)***********************************************************
+//****************************************************************************************************************************************
 int fdialogue(FILE *fq, char *phUTIL, char *rep)
 {
 	TELIZA *pEliza;
@@ -473,7 +510,7 @@ int fdialogue(FILE *fq, char *phUTIL, char *rep)
 
 	if(Max==0)
 	{	
-		return -1;
+		return 0;
 	}
 	fseek(fq, (Num_Max-1)*sizeof(TELIZA), SEEK_SET);
 	fread(pEliza,sizeof(TELIZA),1,fq);
@@ -481,3 +518,219 @@ int fdialogue(FILE *fq, char *phUTIL, char *rep)
 	
 	return 1;
 }
+
+//****************************************************************************************************************************************
+//********************Fonction int fchatterbot(char *UTIL, char *ficnameCHAT)*************************************************************
+//****************************************************************************************************************************************
+int fchatterbot(char *UTIL, char *ficnameCHAT)
+{
+	char Reponse[MLIGNE]="";
+	char Question[MLIGNE]="";
+	FILE *fq=NULL;
+	FILE *Conv=NULL;
+
+	fq=fopen(NAMEFIC,"r");
+	if(fq==NULL)
+	{
+		printf("\nErreur d'ouverture (fchatterbot)");
+		return -1;
+	}
+
+	Conv=fopen(UTIL,"w");
+	if(Conv==NULL)
+	{
+		printf("\nErreur de creation du fichier conv (fchatterbot)");
+	}
+
+	system(CLEAN);
+	printf("\n\tSession chatterbot ouverte\n\n");
+	printf("// Saisissez 'STOP' pour arreter la session\n");
+	fprintf(Conv,"\n\tSession chatterbot ouverte\n\n");
+	fprintf(Conv,"// Saisissez 'STOP' pour arreter la session\n");
+	
+	do
+	{
+		printf("\n%s : ",UTIL);
+		fgets(Question,MLIGNE,stdin);	
+		fprintf(Conv,"\n%s : %s", UTIL, Question);
+		if( strcmp(Question, "STOP\n") == 0 )
+		{
+			break;
+		}
+		if( fdialogue(fq, Question, Reponse)==0 )
+		{
+			printf("\nChatterBot : Il faut m'en dire plus\n");
+			fprintf(Conv,"\nChatterBot : Il faut m'en dire plus\n");
+		}
+		else
+		{
+			printf("\nChatterBot : %s",Reponse);
+			fprintf(Conv,"\nChatterBot : %s",Reponse);
+		}
+		
+		
+	}while(1);
+
+	if (fq!=NULL)
+	{
+		fclose(fq);
+		fq=NULL;
+	}
+
+	printf("\n\tSession chatterbot fermee\n");
+	fprintf(Conv,"\n\tSession chatterbot fermee\n");
+
+	if (Conv!=NULL)
+	{
+		fclose(Conv);
+		Conv=NULL;
+	}
+	
+	return 0;
+}
+
+//****************************************************************************************************************************************
+//********************Fonction int ftrace(char *UTIL)*************************************************************************************
+//****************************************************************************************************************************************
+int ftrace(char *UTIL)
+{
+	FILE *Conv;
+	char Buffer;
+
+	Conv=fopen(UTIL,"r");
+	if(Conv==NULL)
+	{
+		printf("\nPas de session pour cet utilisateur\n");
+		return 0;
+	}
+	
+	system(CLEAN);
+	printf("\n____________________Affichage de la session %s____________________\n",UTIL);
+
+	while(fread(&Buffer,sizeof(Buffer),1,Conv)!=0 && !feof(Conv))
+	{
+		printf("%c",Buffer);
+	}
+
+	if (Conv!=NULL)
+	{
+		fclose(Conv);
+		Conv=NULL;
+	}
+
+	return 1;		
+}
+
+//****************************************************************************************************************************************
+//********************Fonction char menu_util(void)***************************************************************************************
+//****************************************************************************************************************************************
+char menu_util(void)
+{
+	char Etat;
+	char Poubelle;
+
+	do
+	{
+		system(CLEAN);
+		printf("\n\tMenu utilisateur\n\n");
+		printf("\t(a) Afficher sa derniere session\n");
+		printf("\t(b) Nouvelle session\n");
+		printf("\t(c) Quitter\n");
+		printf("\nVotre choix : ");
+		scanf("%c",&Etat);
+		scanf("%c",&Poubelle);
+
+	}while( Etat!='a' && Etat!='b' && Etat!='c' );
+
+	return Etat;
+}
+
+//****************************************************************************************************************************************
+//********************Fonction int gestion_util(void)*************************************************************************************
+//****************************************************************************************************************************************
+int gestion_util(void)
+{
+	char Util[MLIGNE]="";
+	char Etat;
+	int i=0;
+	FILE *Conv=NULL;	
+
+	system(CLEAN);
+
+	do
+	{
+		
+		printf("\nEntrez votre nom d'utilisateur : ");
+
+		do
+		{
+			
+			
+			if( i < MLIGNE )
+			{
+				Util[i]=getc(stdin);
+				i++;
+			}
+			else
+			{
+				break;
+			}
+		}while( Util[i-1]!='\n' );
+
+		Util[i-1]='\0';
+
+		Conv=fopen(Util,"r");
+		if(Conv==NULL)
+		{
+		
+		}
+		else
+		{
+			printf("\nL'utilisateur existe deja\n");
+			i=0;
+			memset(Util,0,MLIGNE);
+		}
+
+	}while(Conv!=NULL);
+
+	if (Conv!=NULL)
+	{
+		fclose(Conv);
+		Conv=NULL;
+	}
+
+	do
+	{
+		Etat=menu_util();
+		switch(Etat)
+		{
+			case 'a':
+			ftrace(Util);
+			printf("\nTAPEZ ENTRER");
+			getc(stdin);
+			break;
+	
+			case 'b':
+			fchatterbot(Util, NAMEFIC);
+			printf("\nTAPEZ ENTRER");
+			getc(stdin);
+			break;
+	
+			case 'c':
+			return 0;
+			break;
+	
+			default :
+			break;
+		}
+	}while(1);
+
+}
+
+//****************************************************************************************************************************************
+//****************************************************************************************************************************************
+//****************************************************************************************************************************************
+
+//****************************************************************************************************************************************
+//****************************************************************************************************************************************
+//****************************************************************************************************************************************
