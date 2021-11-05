@@ -1,16 +1,17 @@
 //***********************Jonathan CASSAING****************************
 //***********************16/01/2009***********************************
-//***********************ChatterBot_v0.1b******************************
+//***********************ChatterBot_v0.2b******************************
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #define MNAME 256
 #define MLIGNE 256
 #define NAMEFIC "./Eliza_File.txt"
 #define CLEAN "clear" //ecrire "cls" a la place de "clear" pour une utilisation sous windows
-#define CHATTERBOT	"__________ChatterBot_v0.1b__________"
+#define CHATTERBOT	"__________ChatterBot_v0.2b__________"
 
 int Cpt=1; //Variable globale de numerotation des structures (Num)
 
@@ -31,13 +32,21 @@ int faff_chatterbot(char *nomfic);
 int frech_mcle(TELIZA *Eret, FILE * fq, int num1);
 void fmodif_mcle(TELIZA *Qamodif);
 int fmodif_chatterbot(char *nomfic);
+
 char menu_admin(void);
 void gestion_admin();
+
+int str_inclus(char *mot, char *phrase);
+int trouve_reponse(char *phUTIL, TELIZA *E);
+int fdialogue(FILE *fq, char *phUTIL, char *rep);
 
 int main(void)
 {		
 	char Etat;
 	char Poubelle;
+	char Reponse[MLIGNE]="";
+	char Question[MLIGNE]="";
+	FILE *fq;
 	
 	do
 	{
@@ -59,9 +68,29 @@ int main(void)
 			break;
 
 			case 'b':
-			printf("\nFonction pas encore disponnible");
+			fq=fopen(NAMEFIC,"r");
+			if(fq==NULL)
+			{
+				printf("\nErreur d'ouverture (Main)");
+				return 0;
+			}
+			printf("\nPosez une question : ");
+			fgets(Question,MLIGNE,stdin);
+			if( fdialogue(fq, Question, Reponse)==-1 )
+			{
+				printf("\nIl faut m'en dire plus\n");
+			}
+			else
+			{
+				printf("\n%s",Reponse);
+			}
 			printf("\nTapez ENTRER");
 			getc(stdin);
+			if (fq!=NULL)
+			{
+				fclose(fq);
+				fq=NULL;
+			}
 			break;
 
 			case 'c':
@@ -350,4 +379,105 @@ char menu_admin(void)
 
 	}while(1);
 
+}
+
+int str_inclus(char *mot, char *phrase)
+{
+	int i=0;
+	int j=0;
+
+	while( phrase[i]!='\0' ) //Mettre en majuscule
+	{
+		phrase[i]=toupper(phrase[i]);
+		i++;
+	}
+
+	i=0;
+
+	while( mot[i]!='\0' ) //Mettre en majuscule
+	{
+		mot[i]=toupper(mot[i]);
+		i++;
+	}
+
+	i=0;
+
+	while( phrase[i]!='\0' )
+	{
+		while( phrase[i]==mot[j] )
+		{
+			if( phrase[i]=='\n' )
+			{
+				return 1;
+			}
+			i++;
+			j++;
+		}
+	
+		if( phrase[i]==' ' && mot[j]=='\n' )
+		{
+			return 1;
+		}
+		j=0;
+		i++;
+	}
+
+	return 0;
+}
+
+int trouve_reponse(char *phUTIL, TELIZA *E)	//La fonction retourne le nombre de mot cle trouve
+{
+	int Cpt=0;
+
+	if( str_inclus(E->cle1, phUTIL) )
+	{
+		Cpt++;
+	}
+	if( str_inclus(E->cle2, phUTIL) )
+	{
+		Cpt++;
+	}
+	if( str_inclus(E->cle3, phUTIL) )
+	{
+		Cpt++;
+	}
+	if( str_inclus(E->cle4, phUTIL) )
+	{
+		Cpt++;
+	}
+	return Cpt;
+}
+
+int fdialogue(FILE *fq, char *phUTIL, char *rep)
+{
+	TELIZA *pEliza;
+	TELIZA Eliza;
+	int Cpt=0;
+	int Max=0;
+	int Num_Max=0;
+
+	pEliza=&Eliza;
+
+	memset(pEliza,0,sizeof(TELIZA));
+	fseek(fq, 0, SEEK_SET);
+
+	while(fread(pEliza,sizeof(TELIZA),1,fq)!=0 && !feof(fq))
+	{	
+		Cpt=trouve_reponse(phUTIL, pEliza);
+		if( Cpt>Max )
+		{
+			Max=Cpt;
+			Num_Max=pEliza->num;
+		}
+	}
+
+	if(Max==0)
+	{	
+		return -1;
+	}
+	fseek(fq, (Num_Max-1)*sizeof(TELIZA), SEEK_SET);
+	fread(pEliza,sizeof(TELIZA),1,fq);
+	strcpy(rep, pEliza->phrase);
+	
+	return 1;
 }
