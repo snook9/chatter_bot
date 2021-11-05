@@ -1,8 +1,9 @@
 //***********************Jonathan CASSAING************************************************************************************************
 //***********************v1.0 -> 20/01/2009***********************************************************************************************
-//****************************************************************************************************************************************
+//***********************v1.1 -> 22/01/2009 : Prise en charge de Linux et Windows*********************************************************
+//******************************************* Plusieurs problemes rencontres sous Windows, Patch en cours...******************************
 
-//***********************ChatterBot_v1.0**************************************************************************************************
+//***********************ChatterBot_v1.1**************************************************************************************************
 //****************************************************************************************************************************************
 //****************************************************************************************************************************************
 
@@ -14,10 +15,17 @@
 #define MNAME 256							//Caracteres maximum pour les Key Words
 #define MLIGNE 256							//Caracteres maximum pour les phrases
 #define NAMEFIC "./Eliza_File.txt"					//Fichier du ChatterBot
-#define CLEAN "clear" 							//Ecrire "cls" a la place de "clear" pour une utilisation sous windows
-#define CHATTERBOT	"__________ChatterBot_v1.0__________"		//Version du ChatterBot
+#define CHATTERBOT	"__________ChatterBot_v1.1__________"		//Version du ChatterBot
 
-int Cpt=1; 								//Variable globale de numerotation des structures (Num)
+#ifdef WIN32								//Si vous etes sous Windows 
+#define CLEAN "cls"							//"cls" pour rafraichir l'ecran sous Windows
+#elif defined (linux)						//Si vous etes sous Linux
+#define CLEAN "clear"
+#elif __APPLE__	
+#define CLEAN "clear"					//"clear" pour rafraichir l'ecran sous Linux
+#endif
+
+int Cpt=1; 								//Variable globale de numerotation des structures (TELIZA.num)
 
 typedef struct eliza{
 	char cle1[MNAME];
@@ -34,17 +42,18 @@ void fenr_mcle(TELIZA *E, FILE * fq);					//Enregistre une structure a la fin du
 int fcreer_chatterbot(char *nomfic);					//Ajoute une structure au fichier "nomfic"
 void faff_mcle(FILE *faff, TELIZA *E);					//Enregistre une structure au debut du fichier "fq", //Non utilisee
 int faff_chatterbot(char *nomfic);					//Affichage du fichier "nomfic"
-int frech_mcle(TELIZA *Eret, FILE * fq, int num1);			//Recherche une structure grace a son numero
-void fmodif_mcle(TELIZA *Qamodif);					//Modifie une strucutre existante
+int frech_mcle(TELIZA *Eret, FILE * fq, int num1);			//Recherche une structure grace a son numero. La fonction retourne Num ou -1 si la structure n'a pas ete trouvee
+int fmodif_mcle(TELIZA *Qamodif);					//Modifie une strucutre existante, return 1 si structure modifiee, return 0 si aucune structure modifiee
 int fmodif_chatterbot(char *nomfic);					//Recherche une structure, la modifie et l'enregistre dans le fichier "nomfic"
 /*********************Fonctions main*********************/
 char menu_admin(void);							//Affiche le menu administrateur
 char menu_util(void);							//Affiche le menu utilisateur
 int gestion_admin(void);						//Gere le menu administrateur
 int gestion_util(void);							//Gere le menu utilisateur
+int CreateChatterFile(char *nomfic);					//Creation d'un fichier ChatterBot si aucun existe
 /*********************Fonctions utilisateur*********************/
 int str_inclus(char *mot, char *phrase);				//Recherche le mot "mot" dans la phrase "phrase"
-int trouve_reponse(char *phUTIL, TELIZA *E);				//Recherche si "phUTIL" contient un des Key Words de "E"
+int trouve_reponse(char *phUTIL, TELIZA *E);				//Recherche si "phUTIL" contient un des Key Words de "E". Retourne le nombre de Key Words
 int fdialogue(FILE *fq, char *phUTIL, char *rep);			//Recherche si "phUTIL" contient un des Key Words d'une structure du fichier "fq"
 int fchatterbot(char *UTIL, char *ficnameCHAT);				//Genere une session ChatterBot
 int ftrace(char *UTIL);							//Affiche la derniere session
@@ -58,6 +67,8 @@ int main(void)
 	char Etat;
 	char Poubelle;
 	
+	CreateChatterFile(NAMEFIC);
+
 	do
 	{
 		system(CLEAN);
@@ -118,7 +129,7 @@ TELIZA tsaisie_mcle(void)
 
 	pEliza->num=Cpt;
 
-	Cpt++;		//Incremente la numerotation pour le mode admin
+	Cpt++;						//Incremente la numerotation des structures
 		
 	return *pEliza;
 }
@@ -173,9 +184,9 @@ int fcreer_chatterbot(char *nomfic)
 //****************************************************************************************************************************************
 //********************Fonction void faff_mcle(FILE *faff, TELIZA *E)**********************************************************************
 //****************************************************************************************************************************************
-void faff_mcle(FILE *faff, TELIZA *E)
+void faff_mcle(FILE *faff, TELIZA *E)			//Fonction non utilisee
 {
-	fseek(faff, 0, SEEK_SET);	//peut etre à enlever	
+	fseek(faff, 0, SEEK_SET);	
 	fprintf(faff,"\n%s",E->cle1);
 	fprintf(faff,"\n%s",E->cle2);
 	fprintf(faff,"\n%s",E->cle3);
@@ -204,10 +215,11 @@ int faff_chatterbot(char *nomfic)
 		return 0;
 	}
 
+	system(CLEAN);
 	fseek(fq, 0, SEEK_SET);
 	printf("\n____________________Affichage____________________\n");
 
-	//li dans le fichier rep, 1 fois, la taille de Personne et le range dans l'endroit pointé par p
+
 	while(fread(pEliza,sizeof(TELIZA),1,fq)!=0 && !feof(fq))
 	{
 		printf("\n%s",pEliza->cle1);
@@ -215,9 +227,7 @@ int faff_chatterbot(char *nomfic)
 		printf("%s",pEliza->cle3);
 		printf("%s",pEliza->cle4);
 		printf("%s",pEliza->phrase);
-		/***********A DELETE A LA FIN**********/
 		printf("%d",pEliza->num);
-		/**************************************/
 		printf("\n");
 		memset(pEliza, 0, sizeof(TELIZA));
 	}
@@ -258,7 +268,7 @@ int frech_mcle(TELIZA *Eret, FILE * fq, int num1)
 //****************************************************************************************************************************************
 //********************Fonction void fmodif_mcle(TELIZA *Qamodif)**************************************************************************
 //****************************************************************************************************************************************
-void fmodif_mcle(TELIZA *Qamodif)
+int fmodif_mcle(TELIZA *Qamodif)
 {
 	int Test=-1;
 	int Num;
@@ -267,8 +277,9 @@ void fmodif_mcle(TELIZA *Qamodif)
 	do
 	{
 	printf("\nVoulez vous modifier la structure ?");
-	printf("\n(0) NON");
-	printf("\n(1) OUI\n");	
+	printf("\n\t(0) NON");
+	printf("\n\t(1) OUI\n");
+	printf("Votre choix : ");	
 	scanf("%d",&Test);
 	scanf("%c",&Poubelle);
 	}while( Test!=1 && Test!=0 );
@@ -296,7 +307,11 @@ void fmodif_mcle(TELIZA *Qamodif)
 
 		Qamodif->num = Num;
 
+		return 1;
+
 	}
+
+	return 0;
 }
 
 //****************************************************************************************************************************************
@@ -325,15 +340,17 @@ int fmodif_chatterbot(char *nomfic)
 
 	if( Num==-1 )
 	{
-		printf("\nQuestion non trouvee");
+		printf("\nQuestion non trouvee\n");
 
 	}
 	else
 	{
-		fmodif_mcle(pEret);
+		if( fmodif_mcle(pEret)==1 )
+		{
 		fseek(fq, (Num-1)*sizeof(TELIZA), SEEK_SET);
 		fwrite(pEret,sizeof(TELIZA),1,fq);
-		printf("\nQuestion modifiee");
+		printf("\nQuestion modifiee\n");
+		}
 	}
 
 	if (fq!=NULL)
@@ -417,7 +434,7 @@ int str_inclus(char *mot, char *phrase)
 	int i=0;
 	int j=0;
 
-	while( phrase[i]!='\0' ) //Mettre en majuscule
+	while( phrase[i]!='\0' )			//Gestion de la casse
 	{
 		phrase[i]=toupper(phrase[i]);
 		i++;
@@ -425,7 +442,7 @@ int str_inclus(char *mot, char *phrase)
 
 	i=0;
 
-	while( mot[i]!='\0' ) //Mettre en majuscule
+	while( mot[i]!='\0' )
 	{
 		mot[i]=toupper(mot[i]);
 		i++;
@@ -433,7 +450,7 @@ int str_inclus(char *mot, char *phrase)
 
 	i=0;
 
-	while( phrase[i]!='\0' )
+	while( phrase[i]!='\0' )			//Recherche si "mot" se trouve dans "phrase"
 	{
 		while( phrase[i]==mot[j] )
 		{
@@ -459,37 +476,37 @@ int str_inclus(char *mot, char *phrase)
 //****************************************************************************************************************************************
 //********************Fonction int trouve_reponse(char *phUTIL, TELIZA *E)****************************************************************
 //****************************************************************************************************************************************
-int trouve_reponse(char *phUTIL, TELIZA *E)
+int trouve_reponse(char *phUTIL, TELIZA *E)		//Gestion du nombre de Key Words trouve
 {
-	int Cpt=0;
+	int Cmp=0;
 
 	if( str_inclus(E->cle1, phUTIL) )
 	{
-		Cpt++;
+		Cmp++;
 	}
 	if( str_inclus(E->cle2, phUTIL) )
 	{
-		Cpt++;
+		Cmp++;
 	}
 	if( str_inclus(E->cle3, phUTIL) )
 	{
-		Cpt++;
+		Cmp++;
 	}
 	if( str_inclus(E->cle4, phUTIL) )
 	{
-		Cpt++;
+		Cmp++;
 	}
-	return Cpt;
+	return Cmp;
 }
 
 //****************************************************************************************************************************************
 //********************Fonction int fdialogue(FILE *fq, char *phUTIL, char *rep)***********************************************************
 //****************************************************************************************************************************************
-int fdialogue(FILE *fq, char *phUTIL, char *rep)
+int fdialogue(FILE *fq, char *phUTIL, char *rep)	//Le ChatterBot repond par la phrase de la structure qui possede le plus de Key Words
 {
 	TELIZA *pEliza;
 	TELIZA Eliza;
-	int Cpt=0;
+	int Cmp=0;
 	int Max=0;
 	int Num_Max=0;
 
@@ -500,10 +517,10 @@ int fdialogue(FILE *fq, char *phUTIL, char *rep)
 
 	while(fread(pEliza,sizeof(TELIZA),1,fq)!=0 && !feof(fq))
 	{	
-		Cpt=trouve_reponse(phUTIL, pEliza);
-		if( Cpt>Max )
+		Cmp=trouve_reponse(phUTIL, pEliza);
+		if( Cmp>Max )
 		{
-			Max=Cpt;
+			Max=Cmp;
 			Num_Max=pEliza->num;
 		}
 	}
@@ -592,7 +609,7 @@ int fchatterbot(char *UTIL, char *ficnameCHAT)
 //****************************************************************************************************************************************
 //********************Fonction int ftrace(char *UTIL)*************************************************************************************
 //****************************************************************************************************************************************
-int ftrace(char *UTIL)
+int ftrace(char *UTIL)					//Lit, caractere par caractere, le fichier contenant la conversation de l'utilisateur actuel
 {
 	FILE *Conv;
 	char Buffer;
@@ -725,6 +742,29 @@ int gestion_util(void)
 		}
 	}while(1);
 
+}
+
+//****************************************************************************************************************************************
+//********************Fonction int CreateChatterFile(char *nomfic)*************************************************************************************
+//****************************************************************************************************************************************
+int CreateChatterFile(char *nomfic)
+{
+	FILE *fq=NULL;
+
+	fq=fopen(nomfic,"a+");
+	if(fq==NULL)
+	{
+		printf("\nErreur d'ouverture (Fonction CreateChatterFile)");
+		return 0;
+	}
+
+	if (fq!=NULL)
+	{
+		fclose(fq);
+		fq=NULL;
+	}
+
+	return 1;
 }
 
 //****************************************************************************************************************************************
